@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101828">
+  <title>KosMonitor — Monitoring Listrik</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1120;--panel:#111a2d;--panel2:#172238;--line:#293650;--muted:#9aa9c2;--text:#edf3ff;--blue:#6ea8fe;--green:#48d597;--red:#ff7d8a;--yellow:#f7c969}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#162440 0,#0b1120 52%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);min-height:100vh}
+    .wrap{max-width:1080px;margin:auto;padding:22px 16px 42px}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px}.logo{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#75a7ff,#6b78f6);font-size:23px;box-shadow:0 8px 28px #557cff35}.brand h1{font-size:20px;letter-spacing:-.5px;margin:0}.brand p{margin:3px 0 0;color:var(--muted);font-size:12px}.connection{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#111a2dcc;border-radius:999px;padding:9px 12px;font-size:12px;color:var(--muted);white-space:nowrap}.dot{width:8px;height:8px;border-radius:50%;background:#718096}.dot.ok{background:var(--green);box-shadow:0 0 10px #48d59777}.dot.bad{background:var(--red)}
+    .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:18px}.eyebrow{color:var(--blue);text-transform:uppercase;font-size:11px;letter-spacing:1.8px;font-weight:800}.hero h2{font-size:clamp(24px,4vw,34px);letter-spacing:-1px;margin:6px 0}.hero p{margin:0;color:var(--muted);font-size:14px}.tag{border:1px solid #294a70;background:#132844;color:#9fc5ff;border-radius:9px;padding:8px 10px;font-size:12px;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{border:1px solid var(--line);background:linear-gradient(155deg,#151f34,#101829);border-radius:17px;padding:17px;min-width:0;box-shadow:0 12px 30px #00000014}.metric-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px}.ico{display:grid;place-items:center;width:33px;height:33px;border-radius:10px;background:#233451;font-size:17px}.value{font-size:clamp(23px,3vw,30px);font-weight:750;letter-spacing:-1px;margin:16px 0 5px;overflow-wrap:anywhere}.unit{font-size:13px;color:var(--muted);font-weight:500;letter-spacing:0}.sub{font-size:11px;color:var(--muted)}.section{margin-top:24px}.section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}.section-title h3{margin:0;font-size:17px;letter-spacing:-.3px}.section-title span{color:var(--muted);font-size:12px}.lights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.light-card{padding:18px}.light-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.light-name{display:flex;align-items:center;gap:12px}.bulb{width:45px;height:45px;border-radius:14px;display:grid;place-items:center;background:#2a3040;font-size:23px}.bulb.on{background:#453c21;box-shadow:inset 0 0 0 1px #8a722e}.light-name h4{margin:0 0 4px;font-size:15px}.light-name p{margin:0;color:var(--muted);font-size:12px}.state{font-size:11px;font-weight:800;letter-spacing:.6px;border-radius:999px;padding:6px 9px;background:#2a3040;color:#aab6ca}.state.on{background:#153d32;color:#69e6b0}.actions{display:flex;gap:9px;margin-top:18px}.btn{border:1px solid var(--line);border-radius:10px;padding:10px 14px;font:inherit;font-size:13px;font-weight:700;color:var(--text);background:#202c42;cursor:pointer;transition:.15s}.btn:hover{filter:brightness(1.14)}.btn:disabled{opacity:.45;cursor:not-allowed}.btn.primary{background:#346ce0;border-color:#4b83f4}.btn.off{background:#202c42}.btn.full{width:100%}
+    .schedules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.schedule-card h4{margin:0 0 5px;font-size:15px}.schedule-card .desc{font-size:12px;color:var(--muted);margin:0 0 16px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;color:var(--muted);font-size:11px;margin-bottom:7px}.field input,.field select{width:100%;min-height:42px;border-radius:10px;border:1px solid var(--line);background:#0c1424;color:var(--text);padding:9px 10px;font:inherit;font-size:13px}.checkline{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin:14px 0}.checkline input{accent-color:#6ea8fe;width:16px;height:16px}.schedule-foot{display:flex;gap:9px;align-items:center;margin-top:14px}.schedule-status{font-size:11px;color:var(--muted)}.note{border:1px solid #4a3c20;background:#292316;color:#e7d29b;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.6;margin-top:14px}.log{max-height:180px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#b5c3d9;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}.footer{display:flex;justify-content:space-between;gap:12px;color:#74839e;font-size:11px;margin-top:24px}.smallbtn{background:transparent;border:0;color:#9fc5ff;text-decoration:underline;cursor:pointer;font:inherit}
+    @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:flex-start;flex-direction:column}.lights,.schedules{grid-template-columns:1fr}.wrap{padding:17px 12px 30px}.card{padding:15px}.top{align-items:flex-start}.brand h1{font-size:18px}.connection{padding:8px 9px}.connection .label{display:none}}
+    @media(max-width:360px){.grid{gap:8px}.value{font-size:22px}.card{padding:12px}.form-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand"><div class="logo">ϟ</div><div><h1>KosMonitor</h1><p>Smart electricity dashboard</p></div></div>
+      <div class="connection"><span id="connDot" class="dot"></span><span id="connText">Menghubungkan MQTT…</span><span class="label">· EMQX</span></div>
+    </header>
+
+    <section class="hero">
+      <div><div class="eyebrow">Monitoring real-time</div><h2>Ringkasan listrik kos</h2><p>Pantau beban simulasi dan kontrol lampu dari satu halaman.</p></div>
+      <div class="tag" id="lastUpdate">Belum menerima data</div>
+    </section>
+
+    <section class="grid" aria-label="Ringkasan metrik">
+      <article class="card"><div class="metric-head"><span>Tegangan</span><span class="ico">ϟ</span></div><div class="value"><span id="voltage">—</span> <span class="unit">V</span></div><div class="sub">Tegangan simulasi</div></article>
+      <article class="card"><div class="metric-head"><span>Arus</span><span class="ico">↯</span></div><div class="value"><span id="current">—</span> <span class="unit">A</span></div><div class="sub">Arus simulasi</div></article>
+      <article class="card"><div class="metric-head"><span>Daya estimasi</span><span class="ico">▤</span></div><div class="value"><span id="power">—</span> <span class="unit">W</span></div><div class="sub">V × I × faktor daya</div></article>
+      <article class="card"><div class="metric-head"><span>Beban</span><span class="ico">◴</span></div><div class="value"><span id="load">—</span> <span class="unit">%</span></div><div class="sub">Posisi potensiometer</div></article>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><h3>Kontrol lampu</h3><span>Perintah melalui MQTT</span></div>
+      <div class="lights">
+        <article class="card light-card">
+          <div class="light-top"><div class="light-name"><div class="bulb" id="bulb1">💡</div><div><h4>Lampu 1</h4><p>Relay GPIO 21</p></div></div><span class="state" id="state1">STATUS UNKNOWN</span></div>
+          <div class="actions"><button class="btn primary full" id="on1" onclick="controlLamp(1,true)">Nyalakan</button><button class="btn off full" id="off1" onclick="controlLamp(1,false)">Matikan</button></div>
+        </article>
+        <article class="card light-card">
+          <div class="light-top"><div class="light-name"><div class="bulb" id="bulb2">💡</div><div><h4>Lampu 2</h4><p>Relay GPIO 15</p></div></div><span class="state" id="state2">STATUS UNKNOWN</span></div>
+          <div class="actions"><button class="btn primary full" id="on2" onclick="controlLamp(2,true)">Nyalakan</button><button class="btn off full" id="off2" onclick="controlLamp(2,false)">Matikan</button></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><h3>Jadwal otomatis</h3><span>Waktu lokal perangkat</span></div>
+      <div class="schedules">
+        <article class="card schedule-card">
+          <h4>Jadwal Lampu 1</h4><p class="desc">Atur satu waktu harian untuk mengirim perintah.</p>
+          <div class="form-row"><div class="field"><label for="time1">Waktu</label><input type="time" id="time1" value="18:00"></div><div class="field"><label for="action1">Aksi</label><select id="action1"><option value="ON">Nyalakan</option><option value="OFF">Matikan</option></select></div></div>
+          <label class="checkline"><input type="checkbox" id="enabled1"> Aktifkan jadwal harian</label>
+          <div class="schedule-foot"><button class="btn primary" onclick="saveSchedule(1)">Simpan jadwal</button><span class="schedule-status" id="schedStatus1">Belum aktif</span></div>
+        </article>
+        <article class="card schedule-card">
+          <h4>Jadwal Lampu 2</h4><p class="desc">Atur satu waktu harian untuk mengirim perintah.</p>
+          <div class="form-row"><div class="field"><label for="time2">Waktu</label><input type="time" id="time2" value="22:00"></div><div class="field"><label for="action2">Aksi</label><select id="action2"><option value="ON">Nyalakan</option><option value="OFF">Matikan</option></select></div></div>
+          <label class="checkline"><input type="checkbox" id="enabled2"> Aktifkan jadwal harian</label>
+          <div class="schedule-foot"><button class="btn primary" onclick="saveSchedule(2)">Simpan jadwal</button><span class="schedule-status" id="schedStatus2">Belum aktif</span></div>
+        </article>
+      </div>
+      <div class="note">Penting: jadwal versi ini berjalan di browser. Agar jadwal terpicu, halaman harus tetap terbuka dan perangkat harus online pada waktu yang ditentukan. Untuk jadwal yang tetap berjalan saat website ditutup, pindahkan logika jadwal ke ESP32.</div>
+    </section>
+
+    <section class="section"><div class="section-title"><h3>Aktivitas koneksi</h3><button class="smallbtn" onclick="clearLog()">Bersihkan</button></div><article class="card log" id="log">Dashboard siap. Menunggu koneksi MQTT…</article></section>
+    <footer class="footer"><span>KosMonitor · Prototype</span><span>Data demo via broker MQTT publik</span></footer>
+  </main>
+
+  <script>
+    // Topik harus sama dengan firmware ESP32.
+    const TOPICS = {
+      telemetry: 'kosdemo/icha-kos/telemetry',
+      led1Cmd: 'kosdemo/icha-kos/led1/cmd',
+      led2Cmd: 'kosdemo/icha-kos/led2/cmd',
+      led1State: 'kosdemo/icha-kos/led1/state',
+      led2State: 'kosdemo/icha-kos/led2/state'
+    };
+    const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
+    const clientId = 'kosmonitor_web_' + Math.random().toString(16).slice(2, 10);
+    let client = null;
+    let schedules = {1:null,2:null};
+    const lastFired = {1:'',2:''};
+
+    function log(message) {
+      const el = document.getElementById('log');
+      const time = new Date().toLocaleTimeString('id-ID');
+      el.textContent = `[${time}] ${message}\n` + el.textContent;
+    }
+    function clearLog(){document.getElementById('log').textContent='Log dibersihkan.';}
+    function setConnection(connected, message) {
+      document.getElementById('connDot').className = 'dot ' + (connected ? 'ok' : 'bad');
+      document.getElementById('connText').textContent = message;
+      document.querySelectorAll('.actions button').forEach(b => b.disabled = !connected);
+    }
+    function updateLamp(number, value) {
+      const on = String(value).trim().toUpperCase() === 'ON';
+      const state = document.getElementById('state' + number);
+      state.textContent = on ? 'ON' : 'OFF';
+      state.className = 'state' + (on ? ' on' : '');
+      document.getElementById('bulb' + number).className = 'bulb' + (on ? ' on' : '');
+    }
+    function publish(topic, payload) {
+      if (!client || !client.connected) { log('Gagal: MQTT belum terhubung.'); return false; }
+      client.publish(topic, payload, {qos:0, retain:false}, err => {
+        if (err) log('Publish gagal: ' + topic);
+        else log(`Publish ${topic} ← ${payload}`);
+      });
+      return true;
+    }
+    function controlLamp(number, on) {
+      const topic = number === 1 ? TOPICS.led1Cmd : TOPICS.led2Cmd;
+      publish(topic, on ? 'ON' : 'OFF');
+      // Status UI akan diperbarui dari topic /state setelah ESP32 merespons.
+    }
+    function showTelemetry(data) {
+      if (data.voltage_v !== undefined) document.getElementById('voltage').textContent = Number(data.voltage_v).toFixed(1);
+      if (data.current_a !== undefined) document.getElementById('current').textContent = Number(data.current_a).toFixed(3);
+      if (data.power_w !== undefined) document.getElementById('power').textContent = Number(data.power_w).toFixed(2);
+      if (data.load_percent !== undefined) document.getElementById('load').textContent = Number(data.load_percent).toFixed(1);
+      if (data.led1 !== undefined) updateLamp(1, data.led1);
+      if (data.led2 !== undefined) updateLamp(2, data.led2);
+      document.getElementById('lastUpdate').textContent = 'Update ' + new Date().toLocaleTimeString('id-ID');
+    }
+    function connectMqtt() {
+      if (!window.mqtt) {
+        setConnection(false, 'Library MQTT gagal dimuat');
+        log('Library MQTT.js tidak tersedia. Periksa koneksi internet/CDN.');
+        return;
+      }
+      setConnection(false, 'Menghubungkan MQTT…');
+      client = mqtt.connect(BROKER_URL, {
+        clientId,
+        clean: true,
+        connectTimeout: 10000,
+        reconnectPeriod: 3000,
+        keepalive: 30
+      });
+      client.on('connect', () => {
+        setConnection(true, 'MQTT terhubung');
+        log('Terhubung ke broker EMQX via WSS.');
+        client.subscribe([TOPICS.telemetry, TOPICS.led1State, TOPICS.led2State], {qos:0}, err => {
+          if (err) log('Subscribe gagal: ' + err.message);
+          else log('Subscribe telemetry dan status lampu berhasil.');
+        });
+      });
+      client.on('reconnect', () => setConnection(false, 'Menghubungkan ulang…'));
+      client.on('offline', () => setConnection(false, 'MQTT offline'));
+      client.on('close', () => setConnection(false, 'MQTT terputus'));
+      client.on('error', err => log('MQTT error: ' + err.message));
+      client.on('message', (topic, message) => {
+        const payload = message.toString();
+        if (topic === TOPICS.telemetry) {
+          try { showTelemetry(JSON.parse(payload)); }
+          catch(e) { log('Payload telemetry bukan JSON valid.'); }
+        } else if (topic === TOPICS.led1State) updateLamp(1, payload);
+        else if (topic === TOPICS.led2State) updateLamp(2, payload);
+      });
+    }
+
+    function scheduleStorageKey(n){return 'kosmonitor_schedule_' + n;}
+    function loadSchedules() {
+      [1,2].forEach(n => {
+        try {
+          const saved = JSON.parse(localStorage.getItem(scheduleStorageKey(n)) || 'null');
+          if (saved) {
+            schedules[n] = saved;
+            document.getElementById('time' + n).value = saved.time || (n===1?'18:00':'22:00');
+            document.getElementById('action' + n).value = saved.action || 'ON';
+            document.getElementById('enabled' + n).checked = !!saved.enabled;
+            renderScheduleStatus(n);
+          }
+        } catch(e) { log('Jadwal tersimpan tidak dapat dibaca untuk lampu ' + n); }
+      });
+    }
+    function saveSchedule(n) {
+      const time = document.getElementById('time' + n).value;
+      if (!time) { log('Pilih waktu jadwal lampu ' + n + ' terlebih dahulu.'); return; }
+      schedules[n] = {
+        time,
+        action: document.getElementById('action' + n).value,
+        enabled: document.getElementById('enabled' + n).checked
+      };
+      localStorage.setItem(scheduleStorageKey(n), JSON.stringify(schedules[n]));
+      renderScheduleStatus(n);
+      log(`Jadwal lampu ${n} disimpan: ${time}, ${schedules[n].action}, ${schedules[n].enabled ? 'aktif' : 'nonaktif'}.`);
+    }
+    function renderScheduleStatus(n) {
+      const s = schedules[n];
+      document.getElementById('schedStatus' + n).textContent = s && s.enabled ? `Aktif · ${s.time} ${s.action}` : 'Belum aktif';
+    }
+    function checkSchedules() {
+      const now = new Date();
+      const hhmm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+      const date = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+      [1,2].forEach(n => {
+        const s = schedules[n];
+        if (s && s.enabled && s.time === hhmm && lastFired[n] !== date) {
+          const topic = n === 1 ? TOPICS.led1Cmd : TOPICS.led2Cmd;
+          if (publish(topic, s.action)) {
+            lastFired[n] = date;
+            log(`Jadwal harian memicu lampu ${n}: ${s.action}`);
+          }
+        }
+      });
+    }
+    loadSchedules();
+    connectMqtt();
+    setInterval(checkSchedules, 5000);
+  </script>
+</body>
+</html>
